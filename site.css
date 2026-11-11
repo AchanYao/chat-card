@@ -1,0 +1,49 @@
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: #f4f4f5;
+  color: #111;
+  font: 15px/1.5 "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+#editor { max-width: 720px; margin: 0 auto; padding: 32px 20px 64px; }
+.top h1 { margin: 0 0 8px; font-size: 22px; font-weight: 650; }
+.top p, .hint { margin: 0; color: #666; }
+form { display: grid; gap: 16px; margin-top: 24px; }
+label, fieldset { display: grid; gap: 6px; }
+fieldset { border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px; background: #fff; }
+legend { padding: 0 6px; }
+input[type="text"], select {
+  height: 36px; border: 1px solid #d4d4d8; border-radius: 6px; padding: 0 10px; background: #fff; font: inherit;
+}
+.drop {
+  border: 1px dashed #a1a1aa; border-radius: 8px; padding: 18px; background: #fff; text-align: center;
+}
+.drop.over { border-color: #111; background: #fafafa; }
+.drop input { display: block; margin: 0 auto 8px; }
+.presets { display: flex; gap: 8px; }
+.presets button, #me-preview, .av {
+  width: 40px; height: 40px; border-radius: 4px; padding: 0;
+}
+.presets button { border: 2px solid transparent; background: #fff; }
+.presets button[aria-pressed="true"] { border-color: #111; }
+.presets img, #me-preview { display: block; width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
+.upload input { font: inherit; }
+#messages { list-style: none; margin: 8px 0 0; padding: 0; max-height: 320px; overflow: auto; background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; }
+#messages li { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-bottom: 1px solid #f4f4f5; }
+#messages li:last-child { border-bottom: 0; }
+.who-side { flex: none; width: 36px; color: #666; font-size: 12px; padding-top: 2px; }
+.snippet { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+button {
+  height: 34px; border: 1px solid #d4d4d8; border-radius: 6px; background: #fff; font: inherit; padding: 0 12px; cursor: pointer;
+}
+#preview { background: #111; color: #fff; border-color: #111; }
+.error { color: #b91c1c; margin: 0; }
+#preview-view { height: 100vh; display: flex; flex-direction: column; background: #e6e6e6; }
+.preview-bar {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  padding: 10px 16px; background: #fff; border-bottom: 1px solid #e5e5e5;
+}
+#status { color: #666; font-size: 13px; }
+.preview-scroll { flex: 1; overflow: auto; }
+.stage.live header { position: sticky; top: 0; z-index: 2; }

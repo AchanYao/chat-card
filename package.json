@@ -1,0 +1,21 @@
+{
+  "name": "chat-card",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Render omp/pi session JSONL as paginated WeChat-style HTML. Files stay on the machine.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "chat-card": "./bin/chat-card.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "repository": "git+https://github.com/AchanYao/chat-card.git",
+  "bugs": "https://github.com/AchanYao/chat-card/issues",
+  "homepage": "https://github.com/AchanYao/chat-card#readme",
+  "author": "AchanYao (https://github.com/AchanYao)"
+}

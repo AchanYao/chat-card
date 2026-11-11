@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>聊天卡片</title>
+<link rel="stylesheet" href="./site.css">
+</head>
+<body>
+<main id="editor">
+  <header class="top">
+    <h1>聊天卡片</h1>
+    <p>把 omp / pi 的 session JSONL 收成微信对话。文件只在这台浏览器里处理。</p>
+  </header>
+  <form id="form">
+    <label>客户端
+      <select id="format"></select>
+    </label>
+    <div id="drop" class="drop">
+      <input id="file" type="file" accept=".jsonl,.json,text/plain">
+      <span id="file-label">选择或拖入 .jsonl</span>
+    </div>
+    <label>对方昵称
+      <input id="name" type="text" maxlength="40" autocomplete="off">
+    </label>
+    <label>版式
+      <select id="layout">
+        <option value="auto">随窗口</option>
+        <option value="phone">手机</option>
+        <option value="pc">电脑</option>
+      </select>
+    </label>
+    <fieldset>
+      <legend>对方头像</legend>
+      <div id="presets" class="presets"></div>
+      <label class="upload">上传
+        <input id="avatar-them" type="file" accept="image/*">
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend>我的头像</legend>
+      <img id="me-preview" alt="" width="40" height="40">
+      <label class="upload">上传
+        <input id="avatar-me" type="file" accept="image/*">
+      </label>
+    </fieldset>
+    <section>
+      <h2>消息</h2>
+      <p class="hint">取消勾选的气泡不会进入预览和图片。</p>
+      <ul id="messages"></ul>
+    </section>
+    <p id="error" class="error" hidden></p>
+    <button id="preview" type="button" disabled>预览</button>
+  </form>
+</main>
+<div id="preview-view" hidden>
+  <div class="preview-bar">
+    <button id="back" type="button">返回修改</button>
+    <button id="prev" type="button">上一页</button>
+    <span id="pager"></span>
+    <button id="next" type="button">下一页</button>
+    <button id="save" type="button">保存此页</button>
+    <button id="save-all" type="button">保存全部</button>
+    <span id="status"></span>
+  </div>
+  <div class="preview-scroll">
+    <div id="stage" class="stage live"></div>
+  </div>
+</div>
+<script src="./vendor/html2canvas.min.js"></script>
+<script type="module" src="./site.js"></script>
+</body>
+</html>
