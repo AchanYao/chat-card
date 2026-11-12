@@ -19,8 +19,9 @@ const state = {
   session: null,
   hidden: new Set(),
   name: "",
-  layout: "auto",
+  layout: "phone",
   preset: "g",
+  customThem: "",
   avatarThem: DEFAULT_THEM,
   avatarMe: DEFAULT_ME,
   page: 0,
@@ -28,12 +29,17 @@ const state = {
   resolved: "phone",
 };
 
+let saving = false;
+
 const $ = (id) => document.getElementById(id);
 
 function showError(message) {
   const el = $("error");
   el.hidden = !message;
   el.textContent = message || "";
+  if ($("preview-view").hidden) return;
+  if (!message && saving) return;
+  $("status").textContent = message || "";
 }
 
 async function square(file) {
@@ -58,12 +64,18 @@ async function square(file) {
   return canvas.toDataURL("image/png");
 }
 
+function syncMe() {
+  $("me-preview").src = state.avatarMe;
+  $("reset-me").disabled = state.avatarMe === DEFAULT_ME;
+}
+
 function fillPresets() {
   const box = $("presets");
   for (const preset of PRESETS) {
     const button = document.createElement("button");
     button.type = "button";
     button.title = preset.label;
+    button.dataset.id = preset.id;
     button.setAttribute("aria-pressed", String(preset.id === state.preset));
     const img = document.createElement("img");
     img.alt = preset.label;
@@ -74,10 +86,11 @@ function fillPresets() {
       state.avatarThem = preset.url;
       for (const peer of box.querySelectorAll("button")) peer.setAttribute("aria-pressed", "false");
       button.setAttribute("aria-pressed", "true");
+      $("them-custom").setAttribute("aria-pressed", "false");
     });
     box.append(button);
   }
-  $("me-preview").src = state.avatarMe;
+  syncMe();
 }
 
 function fillFormats() {
@@ -88,30 +101,59 @@ function fillFormats() {
     option.textContent = format.label;
     select.append(option);
   }
+  $("format-field").hidden = FORMATS.length < 2;
+}
+
+function snippetOf(text) {
+  const folded = text.replace(/```[\s\S]*?```/g, "代码").replace(/```[\s\S]*$/g, "代码");
+  return folded.replace(/\s+/g, " ").trim();
+}
+
+function themLabel() {
+  return $("name").value.trim() || "对方";
+}
+
+function updateSelectionCount() {
+  const total = state.session ? state.session.messages.length : 0;
+  const selected = total - state.hidden.size;
+  $("selected-count").textContent = `已选 ${selected} / ${total}`;
 }
 
 function renderMessages() {
   const list = $("messages");
   list.replaceChildren();
-  if (!state.session) return;
+  const session = state.session;
+  const show = Boolean(session);
+  $("messages-field").hidden = !show;
+  $("msg-hint").hidden = !show;
+  $("msg-tools").hidden = !show;
+  if (!session || !session.messages.length) {
+    updateSelectionCount();
+    return;
+  }
+  const them = themLabel();
   state.session.messages.forEach((msg, index) => {
     const item = document.createElement("li");
+    const label = document.createElement("label");
     const box = document.createElement("input");
     box.type = "checkbox";
     box.checked = !state.hidden.has(index);
     box.addEventListener("change", () => {
       if (box.checked) state.hidden.delete(index);
       else state.hidden.add(index);
+      updateSelectionCount();
     });
     const side = document.createElement("span");
     side.className = "who-side";
-    side.textContent = msg.side === "me" ? "我" : "对方";
+    side.textContent = msg.side === "me" ? "我" : them;
     const snippet = document.createElement("span");
     snippet.className = "snippet";
-    snippet.textContent = msg.text.replace(/\s+/g, " ");
-    item.append(box, side, snippet);
+    snippet.textContent = snippetOf(msg.text);
+    label.append(box, side, snippet);
+    item.append(label);
     list.append(item);
   });
+  updateSelectionCount();
 }
 
 function loadText(name, text) {
@@ -127,6 +169,8 @@ function loadText(name, text) {
     renderMessages();
   } catch (err) {
     state.session = null;
+    state.hidden = new Set();
+    $("file-label").textContent = name;
     $("preview").disabled = true;
     renderMessages();
     showError(err.message);
@@ -144,7 +188,7 @@ function visible() {
 
 function contentWidth(layout) {
   const bubble = $("stage").querySelector(".bubble");
-  if (!bubble) return layout === "pc" ? 836 : 268;
+  if (!bubble || bubble.clientWidth <= 0) return layout === "pc" ? 836 : 268;
   const styleOf = getComputedStyle(bubble);
   const pad = parseFloat(styleOf.paddingLeft) + parseFloat(styleOf.paddingRight);
   return Math.max(120, bubble.clientWidth - pad);
@@ -160,10 +204,11 @@ function paint(layout) {
   }) : "";
   const count = state.pages.length;
   $("pager").textContent = count ? `${state.page + 1} / ${count}` : "0 / 0";
-  $("prev").disabled = state.page <= 0;
-  $("next").disabled = state.page >= count - 1;
-  $("save").disabled = !page;
-  $("save-all").disabled = !count;
+  $("back").disabled = saving;
+  $("prev").disabled = saving || state.page <= 0;
+  $("next").disabled = saving || state.page >= count - 1;
+  $("save").disabled = saving || !page;
+  $("save-all").disabled = saving || !count;
 }
 
 function rebuild() {
@@ -287,6 +332,8 @@ async function rasterize() {
 }
 
 async function saveCurrent() {
+  saving = true;
+  paint(state.resolved);
   $("status").textContent = "正在保存…";
   try {
     const blob = await rasterize();
@@ -294,12 +341,17 @@ async function saveCurrent() {
     $("status").textContent = "";
   } catch (err) {
     $("status").textContent = err.message;
+  } finally {
+    saving = false;
+    paint(state.resolved);
   }
 }
 
 async function saveAll() {
   const files = [];
   const previous = state.page;
+  saving = true;
+  paint(state.resolved);
   $("status").textContent = "正在保存…";
   try {
     for (let i = 0; i < state.pages.length; i++) {
@@ -316,6 +368,7 @@ async function saveAll() {
     $("status").textContent = err.message;
   } finally {
     state.page = previous;
+    saving = false;
     paint(state.resolved);
   }
 }
@@ -323,12 +376,15 @@ async function saveAll() {
 function openPreview() {
   state.name = $("name").value.trim() || state.session.contactName;
   state.layout = $("layout").value;
-  state.page = 0;
-  rebuild();
-  if (!state.pages.length) return;
   document.body.classList.add("previewing");
   $("editor").hidden = true;
   $("preview-view").hidden = false;
+  rebuild();
+  if (!state.pages.length) {
+    closePreview();
+    return;
+  }
+  if (!saving) $("status").textContent = $("error").textContent;
 }
 
 function closePreview() {
@@ -346,23 +402,71 @@ $("file").addEventListener("change", async () => {
   loadText(file.name, await file.text());
 });
 
+$("sample").addEventListener("click", async () => {
+  try {
+    const response = await fetch("./examples/omp-session.jsonl");
+    if (!response.ok) throw new Error(`载入示例失败（${response.status}）`);
+    loadText("omp-session.jsonl", await response.text());
+  } catch (err) {
+    showError(err.message || "载入示例失败");
+  }
+});
+
 $("format").addEventListener("change", () => {
   if (state.text) loadText($("file-label").textContent, state.text);
+});
+
+$("name").addEventListener("input", () => {
+  if (!state.session) return;
+  const them = themLabel();
+  const sides = $("messages").querySelectorAll(".who-side");
+  state.session.messages.forEach((msg, index) => {
+    if (sides[index]) sides[index].textContent = msg.side === "me" ? "我" : them;
+  });
+});
+
+$("select-all").addEventListener("click", () => {
+  state.hidden.clear();
+  renderMessages();
+});
+
+$("select-none").addEventListener("click", () => {
+  if (!state.session) return;
+  state.hidden = new Set(state.session.messages.map((_, index) => index));
+  renderMessages();
 });
 
 $("avatar-them").addEventListener("change", async () => {
   const file = $("avatar-them").files[0];
   if (!file) return;
-  state.avatarThem = await square(file);
+  state.customThem = await square(file);
+  state.avatarThem = state.customThem;
   state.preset = "";
   for (const button of $("presets").querySelectorAll("button")) button.setAttribute("aria-pressed", "false");
+  const custom = $("them-custom");
+  custom.hidden = false;
+  custom.querySelector("img").src = state.customThem;
+  custom.setAttribute("aria-pressed", "true");
+});
+
+$("them-custom").addEventListener("click", () => {
+  if (!state.customThem) return;
+  state.preset = "";
+  state.avatarThem = state.customThem;
+  for (const button of $("presets").querySelectorAll("button")) button.setAttribute("aria-pressed", "false");
+  $("them-custom").setAttribute("aria-pressed", "true");
 });
 
 $("avatar-me").addEventListener("change", async () => {
   const file = $("avatar-me").files[0];
   if (!file) return;
   state.avatarMe = await square(file);
-  $("me-preview").src = state.avatarMe;
+  syncMe();
+});
+
+$("reset-me").addEventListener("click", () => {
+  state.avatarMe = DEFAULT_ME;
+  syncMe();
 });
 
 const drop = $("drop");

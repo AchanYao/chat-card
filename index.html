@@ -13,52 +13,74 @@
     <p>把 omp / pi 的 session JSONL 收成微信对话。文件只在这台浏览器里处理。</p>
   </header>
   <form id="form">
-    <label>客户端
+    <div class="file-row">
+      <label id="drop" class="drop">
+        <input id="file" type="file" accept=".jsonl,.json,text/plain">
+        <span id="file-label">选择或拖入 .jsonl</span>
+      </label>
+      <button id="sample" type="button">载入示例</button>
+    </div>
+    <label id="format-field" hidden>客户端
       <select id="format"></select>
     </label>
-    <div id="drop" class="drop">
-      <input id="file" type="file" accept=".jsonl,.json,text/plain">
-      <span id="file-label">选择或拖入 .jsonl</span>
+    <div class="pair">
+      <label>对方昵称
+        <input id="name" type="text" maxlength="40" autocomplete="off">
+      </label>
+      <label>版式
+        <select id="layout">
+          <option value="phone" selected>手机</option>
+          <option value="pc">电脑</option>
+          <option value="auto">随窗口</option>
+        </select>
+      </label>
     </div>
-    <label>对方昵称
-      <input id="name" type="text" maxlength="40" autocomplete="off">
-    </label>
-    <label>版式
-      <select id="layout">
-        <option value="auto">随窗口</option>
-        <option value="phone">手机</option>
-        <option value="pc">电脑</option>
-      </select>
-    </label>
-    <fieldset>
-      <legend>对方头像</legend>
-      <div id="presets" class="presets"></div>
-      <label class="upload">上传
-        <input id="avatar-them" type="file" accept="image/*">
-      </label>
-    </fieldset>
-    <fieldset>
-      <legend>我的头像</legend>
-      <img id="me-preview" alt="" width="40" height="40">
-      <label class="upload">上传
-        <input id="avatar-me" type="file" accept="image/*">
-      </label>
-    </fieldset>
-    <section>
+    <p class="hint">发出去的图用手机。随窗口会在宽屏上画成电脑微信。</p>
+    <section id="messages-field" hidden>
       <h2>消息</h2>
-      <p class="hint">取消勾选的气泡不会进入预览和图片。</p>
+      <p id="msg-hint" class="hint" hidden>取消勾选的气泡不会进入预览和图片。</p>
+      <div id="msg-tools" class="msg-tools" hidden>
+        <button id="select-all" type="button">全选</button>
+        <button id="select-none" type="button">全不选</button>
+        <span id="selected-count">已选 0 / 0</span>
+      </div>
       <ul id="messages"></ul>
     </section>
+    <div class="pair">
+      <fieldset>
+        <legend>对方头像</legend>
+        <div class="avatar-line">
+          <div id="presets" class="presets"></div>
+          <button id="them-custom" type="button" hidden aria-pressed="false" title="自定义">
+            <img alt="自定义" width="40" height="40">
+          </button>
+          <label class="upload"><input id="avatar-them" type="file" accept="image/*">上传</label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>我的头像</legend>
+        <div class="avatar-line">
+          <img id="me-preview" alt="" width="40" height="40">
+          <label class="upload"><input id="avatar-me" type="file" accept="image/*">上传</label>
+          <button id="reset-me" type="button" disabled>恢复默认</button>
+        </div>
+      </fieldset>
+    </div>
     <p id="error" class="error" hidden></p>
-    <button id="preview" type="button" disabled>预览</button>
+    <div class="preview-sticky">
+      <button id="preview" type="button" disabled>预览</button>
+    </div>
   </form>
 </main>
 <div id="preview-view" hidden>
   <div class="preview-bar">
     <button id="back" type="button">返回修改</button>
-    <button id="prev" type="button">上一页</button>
-    <span id="pager"></span>
-    <button id="next" type="button">下一页</button>
+    <div class="pager-group">
+      <button id="prev" type="button">上一页</button>
+      <span id="pager"></span>
+      <button id="next" type="button">下一页</button>
+    </div>
+    <span class="bar-spacer"></span>
     <button id="save" type="button">保存此页</button>
     <button id="save-all" type="button">保存全部</button>
     <span id="status"></span>
