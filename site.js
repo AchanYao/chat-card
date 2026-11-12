@@ -101,7 +101,6 @@ function fillFormats() {
     option.textContent = format.label;
     select.append(option);
   }
-  $("format-field").hidden = FORMATS.length < 2;
 }
 
 function snippetOf(text) {
