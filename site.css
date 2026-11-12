@@ -81,6 +81,12 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 .preview-sticky #preview { width: 100%; }
 .error { color: #b91c1c; margin: 0; }
+.toast {
+  position: fixed; z-index: 5; left: 50%; top: 16px; transform: translateX(-50%);
+  max-width: min(560px, calc(100% - 32px)); margin: 0; padding: 10px 14px;
+  border-radius: 8px; background: #111; color: #fff; font-size: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.16);
+}
 button:focus-visible, select:focus-visible, input[type="text"]:focus-visible,
 .drop:focus-within, .upload:focus-within {
   outline: 2px solid #111; outline-offset: 2px;

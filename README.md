@@ -39,7 +39,7 @@ npx github:AchanYao/chat-card render examples/omp-session.jsonl -o out.html --la
 ```
 
 - `--layout phone|pc|auto`：默认 `auto`。`auto` 按手机宽度分页，宽窗口只改变外观。
-- `--format omp`：会话格式，目前只有 omp。
+- `--format omp|claude|codex|grok|auto`：会话格式。默认 `omp`。`auto` 按文件识别。网页上传总会识别并切换。
 - `--name`：顶栏昵称。
 - `-o`、`--out`：输出 HTML 的路径。
 - `--avatar-me`：我的头像图片。

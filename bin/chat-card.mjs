@@ -2,14 +2,14 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { stdin, stdout, stderr } from "node:process";
 import { resolve } from "node:path";
-import { parseSession, paginate, renderDocument, DEFAULT_ME, DEFAULT_THEM } from "../lib/core.js";
+import { parseSession, paginate, renderDocument, DEFAULT_ME, DEFAULT_THEM, FORMATS } from "../lib/core.js";
 
 const VERSION = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
 const HELP = `chat-card — omp/pi 会话转微信式 HTML
 
   chat-card render <session.jsonl> [-o out.html]
-      [--layout phone|pc|auto] [--format omp] [--name 昵称]
+      [--layout phone|pc|auto] [--format omp|claude|codex|grok|auto] [--name 昵称]
       [--avatar-me 图片] [--avatar-them 图片]
   node bin/chat-card.mjs render <session.jsonl> [选项同上]
   chat-card mcp
@@ -18,7 +18,7 @@ const HELP = `chat-card — omp/pi 会话转微信式 HTML
   node bin/chat-card.mjs --version
 
 --layout phone|pc|auto  默认 auto。auto 按手机宽度分页，宽窗口只改变外观。
---format omp            会话格式，目前只有 omp。
+--format 格式            omp、claude、codex、grok 或 auto。默认 omp。auto 按文件识别。
 --name 昵称             顶栏昵称。
 -o, --out 文件          输出 HTML 路径。
 --avatar-me 图片        我的头像。
@@ -123,7 +123,7 @@ const TOOL = {
     type: "object",
     properties: {
       path: { type: "string", description: "session .jsonl 路径" },
-      format: { type: "string", enum: ["omp"], description: "第一版只有 omp / pi" },
+      format: { type: "string", enum: [...FORMATS.map((item) => item.id), "auto"], description: "omp、claude、codex、grok 或 auto。省略时按 omp" },
       layout: { type: "string", enum: ["phone", "pc", "auto"] },
       name: { type: "string", description: "顶栏昵称" },
       out: { type: "string", description: "输出 HTML 路径" },

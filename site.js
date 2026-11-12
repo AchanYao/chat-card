@@ -5,6 +5,7 @@ import {
   FORMATS,
   PAGE_MAX,
   PRESETS,
+  detectFormat,
   paginate,
   parseSession,
   renderScreen,
@@ -155,9 +156,19 @@ function renderMessages() {
   updateSelectionCount();
 }
 
-function loadText(name, text) {
+function loadText(name, text, detect) {
+  let format = $("format").value;
+  if (detect) {
+    const detected = detectFormat(text);
+    if (detected) {
+      format = detected;
+      $("format").value = detected;
+      const label = FORMATS.find((item) => item.id === detected)?.label || detected;
+      showToast(`检测到 ${label}，已为您自动切换 ${label}。`);
+    }
+  }
   try {
-    state.session = parseSession(text, $("format").value);
+    state.session = parseSession(text, format);
     state.text = text;
     state.hidden = new Set();
     state.name = state.session.contactName;
@@ -174,6 +185,17 @@ function loadText(name, text) {
     renderMessages();
     showError(err.message);
   }
+}
+
+let toastTimer = 0;
+function showToast(message) {
+  const el = $("toast");
+  el.textContent = message;
+  el.hidden = false;
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => {
+    el.hidden = true;
+  }, 3200);
 }
 
 function resolvedLayout() {
@@ -398,21 +420,21 @@ fillPresets();
 $("file").addEventListener("change", async () => {
   const file = $("file").files[0];
   if (!file) return;
-  loadText(file.name, await file.text());
+  loadText(file.name, await file.text(), true);
 });
 
 $("sample").addEventListener("click", async () => {
   try {
     const response = await fetch("./examples/omp-session.jsonl");
     if (!response.ok) throw new Error(`载入示例失败（${response.status}）`);
-    loadText("omp-session.jsonl", await response.text());
+    loadText("omp-session.jsonl", await response.text(), true);
   } catch (err) {
     showError(err.message || "载入示例失败");
   }
 });
 
 $("format").addEventListener("change", () => {
-  if (state.text) loadText($("file-label").textContent, state.text);
+  if (state.text) loadText($("file-label").textContent, state.text, false);
 });
 
 $("name").addEventListener("input", () => {
@@ -479,7 +501,7 @@ drop.addEventListener("drop", async (event) => {
   drop.classList.remove("over");
   const file = event.dataTransfer.files[0];
   if (!file) return;
-  loadText(file.name, await file.text());
+  loadText(file.name, await file.text(), true);
 });
 
 $("preview").addEventListener("click", openPreview);

@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { PAGE_MAX, parseSession, paginate, renderDocument, renderScreen } from "../lib/core.js";
+import { PAGE_MAX, detectFormat, parseSession, paginate, renderDocument, renderScreen } from "../lib/core.js";
 
 const cli = fileURLToPath(new URL("../bin/chat-card.mjs", import.meta.url));
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
@@ -92,8 +92,67 @@ test("escapes message text", () => {
   assert.equal(html.includes("&lt;script&gt;"), true);
 });
 
-test("rejects a second format", () => {
-  assert.throws(() => parseSession("{}", "chatgpt"), /omp \/ pi/);
+test("rejects an unknown format", () => {
+  assert.throws(() => parseSession("{}", "chatgpt"), /不支持这种会话格式/);
+});
+
+function lines(records) {
+  return records.map((record) => JSON.stringify(record)).join("\n");
+}
+
+test("detects the client from the file", () => {
+  assert.equal(detectFormat(session([])), "omp");
+  assert.equal(detectFormat(lines([
+    { type: "user", uuid: "u", sessionId: "s", message: { role: "user", content: "你好" } },
+  ])), "claude");
+  assert.equal(detectFormat(lines([
+    { type: "session_meta", timestamp: "2026-11-10T00:00:00.000Z", payload: { originator: "codex-tui" } },
+  ])), "codex");
+  assert.equal(detectFormat(lines([
+    { timestamp: 1784278802, params: { update: { sessionUpdate: "user_message_chunk", content: { type: "text", text: "你好" } } } },
+  ])), "grok");
+  assert.equal(detectFormat("not a session"), null);
+});
+
+test("reads a Claude Code transcript and drops tools", () => {
+  const parsed = parseSession(lines([
+    { type: "user", uuid: "u", parentUuid: null, timestamp: "2026-11-10T08:00:00.000Z", sessionId: "s", message: { role: "user", content: [{ type: "text", text: "你好" }] } },
+    { type: "assistant", uuid: "side", parentUuid: "u", message: { role: "assistant", model: "claude-sonnet-4-5", content: [{ type: "text", text: "岔路" }] } },
+    { type: "assistant", uuid: "a", parentUuid: "u", timestamp: "2026-11-10T08:00:05.000Z", message: { role: "assistant", model: "claude-sonnet-4-5", content: [{ type: "thinking", thinking: "隐藏" }, { type: "text", text: "收到" }, { type: "tool_use", name: "Read", input: {} }] } },
+    { type: "user", uuid: "t", parentUuid: "a", message: { role: "user", content: [{ type: "tool_result", tool_use_id: "x", content: "工具" }] } },
+  ]), "auto");
+  assert.equal(parsed.format, "claude");
+  assert.equal(parsed.contactName, "Claude");
+  assert.deepEqual(parsed.messages.map((msg) => msg.text), ["你好", "收到"]);
+  assert.equal(parsed.messages[1].side, "them");
+});
+
+test("reads a Codex rollout and skips developer context", () => {
+  const parsed = parseSession(lines([
+    { type: "session_meta", timestamp: "2026-11-10T00:00:00.000Z", payload: { originator: "codex-tui" } },
+    { type: "turn_context", timestamp: "2026-11-10T00:00:01.000Z", payload: { model: "gpt-5.4" } },
+    { type: "response_item", timestamp: "2026-11-10T00:00:02.000Z", payload: { type: "message", role: "developer", content: [{ type: "input_text", text: "system" }] } },
+    { type: "response_item", timestamp: "2026-11-10T00:00:03.000Z", payload: { type: "message", role: "user", content: [{ type: "input_text", text: "<environment_context>cwd</environment_context>" }] } },
+    { type: "response_item", timestamp: "2026-11-10T00:00:04.000Z", payload: { type: "message", role: "user", content: [{ type: "input_text", text: "<user_query>你好</user_query>" }] } },
+    { type: "response_item", timestamp: "2026-11-10T00:00:05.000Z", payload: { type: "message", role: "assistant", content: [{ type: "output_text", text: "收到" }] } },
+    { type: "response_item", timestamp: "2026-11-10T00:00:06.000Z", payload: { type: "function_call", name: "exec_command", arguments: "{}" } },
+  ]), "auto");
+  assert.equal(parsed.format, "codex");
+  assert.equal(parsed.contactName, "GPT");
+  assert.deepEqual(parsed.messages.map((msg) => [msg.side, msg.text]), [["me", "你好"], ["them", "收到"]]);
+});
+
+test("joins Grok Build message chunks and drops thoughts", () => {
+  const parsed = parseSession(lines([
+    { timestamp: 1784278802, params: { update: { sessionUpdate: "user_message_chunk", content: { type: "text", text: "你" } }, _meta: { promptIndex: 0 } } },
+    { timestamp: 1784278802, params: { update: { sessionUpdate: "user_message_chunk", content: { type: "text", text: "好" } }, _meta: { promptIndex: 0 } } },
+    { timestamp: 1784278803, params: { update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "收" } }, _meta: { promptId: "p1" } } },
+    { timestamp: 1784278803, params: { update: { sessionUpdate: "agent_thought_chunk", content: { type: "text", text: "隐藏" } }, _meta: { promptId: "p1" } } },
+    { timestamp: 1784278804, params: { update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "到" } }, _meta: { promptId: "p1" } } },
+  ]), "auto");
+  assert.equal(parsed.format, "grok");
+  assert.equal(parsed.contactName, "Grok");
+  assert.deepEqual(parsed.messages.map((msg) => [msg.side, msg.text]), [["me", "你好"], ["them", "收到"]]);
 });
 
 test("pages stay within the canvas budget", () => {
